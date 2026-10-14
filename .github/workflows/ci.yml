@@ -1,0 +1,51 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Least privilege: the workflow can read the code and nothing else.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Every action is pinned to a full commit SHA; Dependabot proposes updates.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Lint and tests
+        run: make setup lint test
+      - name: End-to-end demo (sketches vs exact counts on a 1,000,000-line log)
+        run: |
+          make demo | tee demo.txt
+          result=$(grep '^RESULT' demo.txt)
+          if echo "$result" | grep -q 'within_3_sigma=yes top10_recall=10/10 counts_in_range=10/10'; then
+            echo "::notice title=demo::$result"
+          else
+            echo "::error title=demo::$result"
+            exit 1
+          fi
+      - name: Accuracy bench (observed error vs theoretical bounds)
+        run: |
+          set -o pipefail
+          make bench | tee bench.txt || { echo "::error title=bench::$(grep '^RESULT' bench.txt)"; exit 1; }
+          echo "::notice title=bench::$(grep '^RESULT' bench.txt)"
+      - name: Known-vulnerability audit (OSV.dev)
+        run: |
+          set -o pipefail
+          make audit | tee audit.txt || { echo "::error title=audit::$(tail -n 1 audit.txt)"; exit 1; }
+          echo "::notice title=audit::$(tail -n 1 audit.txt)"
