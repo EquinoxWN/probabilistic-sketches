@@ -62,12 +62,12 @@
       <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
-        <version>3.10.3</version>
+        <version>3.10.4</version>
         <configuration>
           <lineEndings>UNIX</lineEndings>
           <java>
             <palantirJavaFormat>
-              <version>2.102.0</version>
+              <version>2.103.0</version>
             </palantirJavaFormat>
             <removeUnusedImports/>
             <importOrder/>
@@ -104,7 +104,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.6.0</version>
+        <version>3.6.1</version>
         <configuration>
           <!-- One forked JVM with a capped heap; temp files stay under target/. -->
           <forkCount>1</forkCount>
