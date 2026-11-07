@@ -148,4 +148,18 @@ class HeavyHittersTest {
         entries.forEach(e -> out.add(e.item()));
         return out;
     }
+
+    @Test
+    void anItemExactlyAtTheFractionIsReported() {
+        HeavyHitters h = new HeavyHitters(3, wide());
+        for (int i = 0; i < 5; i++) {
+            h.add("a");
+            h.add("b");
+        }
+        assertEquals(
+                Set.of("a", "b"),
+                new HashSet<>(h.aboveFraction(0.5).stream()
+                        .map(HeavyHitters.Entry::item)
+                        .toList()));
+    }
 }

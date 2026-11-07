@@ -17,7 +17,7 @@ format:
 lint:
 	$(MVN) -DskipTests compile
 
-# 53 tests (about 10 s): hash reference vectors, HyperLogLog sparse/dense equivalence and accuracy over seeded
+# 56 tests (about 10 s): hash reference vectors, HyperLogLog sparse/dense equivalence and accuracy over seeded
 # trials, Count-Min bounds, heavy hitters on Zipf streams, input parsing, CLI end to end.
 test:
 	$(MVN) verify

@@ -165,4 +165,31 @@ class HyperLogLogTest {
         assertEquals(Double.POSITIVE_INFINITY, HyperLogLog.sigma(1.0));
         assertEquals(0.0, HyperLogLog.tau(1.0));
     }
+
+    @Test
+    void sparseKeepsTheLongestRunWhenTwoHashesShareAFineIndex() {
+        // Same 25-bit sparse index with zero extra bits, so the sparse rho decides the dense register.
+        long shortRun = 1L << 38;
+        long longRun = 1L << 20;
+        for (long[] order : new long[][] {{shortRun, longRun}, {longRun, shortRun}}) {
+            HyperLogLog sparse = new HyperLogLog(14);
+            HyperLogLog dense = HyperLogLog.dense(14);
+            for (long h : order) {
+                sparse.addHash(h);
+                dense.addHash(h);
+            }
+            assertTrue(sparse.isSparse());
+            assertEquals(30, dense.registersSnapshot()[0]);
+            assertArrayEquals(dense.registersSnapshot(), sparse.registersSnapshot());
+        }
+    }
+
+    @Test
+    void classicEstimateUsesLinearCountingForSmallSets() {
+        HyperLogLog h = HyperLogLog.dense(10);
+        for (int i = 0; i < 200; i++) {
+            h.add("item-" + i);
+        }
+        assertEquals(200, h.classicEstimate(), 20, "linear counting below 2.5m");
+    }
 }

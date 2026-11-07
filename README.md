@@ -21,7 +21,7 @@ Over 200 seeded trials per row, the observed HyperLogLog error stays within 6% o
 
 ![sketch bench: observed error against the theoretical bounds](docs/proof/bench.jpg)
 
-53 tests pass, and no dependency has a known vulnerability:
+56 tests pass (53 in the run shown below), and no dependency has a known vulnerability:
 
 ![mvn verify and the OSV dependency audit](docs/proof/tests.jpg)
 
@@ -114,7 +114,7 @@ Language: **Java 21**, no runtime dependencies (JUnit for tests). Library code i
 ```bash
 make setup   # resolve dependencies
 make lint    # enforcer, Spotless format check, javac -Xlint:all -Werror
-make test    # 53 tests (about 10 seconds)
+make test    # 56 tests (about 10 seconds)
 make demo    # 1,000,000-line log: sketch answers next to exact counts
 make bench   # observed error vs theoretical bounds (about 20 seconds)
 make audit   # OSV.dev check of every resolved dependency
@@ -153,10 +153,11 @@ for (HeavyHitters.Entry e : top.top()) {
 ## Tests and results
 
 Full numbers, commands and the DMAIC write-up: [docs/results/m1.md](docs/results/m1.md).
+Quality check against the 10 engineering rules, with the mutation table: [docs/quality/2026-11-01.md](docs/quality/2026-11-01.md).
 
 | Check | Result |
 |---|---|
-| Tests (`make test`) | **53 passed**, 0 failed |
+| Tests (`make test`) | **56 passed**, 0 failed |
 | Lint | Spotless clean; `javac -Xlint:all -Werror` no warnings |
 | Dependency audit (OSV.dev) | 9 dependencies (all JUnit, test scope), 0 known vulnerabilities |
 | Demo: unique clients | estimate 89,110 vs exact 88,222 (+1.007%, +1.24 standard errors) in 16,384 bytes |
@@ -170,10 +171,10 @@ Full numbers, commands and the DMAIC write-up: [docs/results/m1.md](docs/results
 | Test class | Tests | What it proves |
 |---|---|---|
 | `Murmur3Test` | 8 | Matches the reference MurmurHash3 x64 128 on two published vectors and the empty input; `long` path equals hashing its 8 bytes; every byte of every length 1 to 48 changes the hash; the top 10 bits of both halves are uniform (chi-square) |
-| `HyperLogLogTest` | 10 | Precision limits; duplicates change nothing; register = leading-zero run + 1; sparse memory never exceeds the dense size and switches once; sparse-to-dense conversion equals dense insertion for p = 4..18; small sets counted within 2 while sparse; 200,000 real strings within 3 standard errors; Ertl's sigma and tau match their series |
+| `HyperLogLogTest` | 12 | Precision limits; two hashes sharing a sparse index keep the longer run; classic estimator uses linear counting for small sets; duplicates change nothing; register = leading-zero run + 1; sparse memory never exceeds the dense size and switches once; sparse-to-dense conversion equals dense insertion for p = 4..18; small sets counted within 2 while sparse; 200,000 real strings within 3 standard errors; Ertl's sigma and tau match their series |
 | `HyperLogLogAccuracyTest` | 7 | 100 seeded trials per setting: RMSE within 1.25x of `1.04/sqrt(m)` and no bias at n = 1,000 to 1,000,000 for p = 10, 12, 14; Ertl's estimator beats the classic one at 2.5m by at least 1.5x; sparse mode is at least 10x more accurate than dense for small sets |
 | `CountMinSketchTest` | 10 | Width and depth from epsilon and delta; invalid arguments and total overflow rejected; never under-counts in either mode; fraction of items over `epsilon*N` stays below delta for depth 1 and 3; mean over-count of one row matches `(N - count)/w` within 3%; conservative estimates never exceed plain ones; halving; overloads hash the same bytes |
-| `HeavyHittersTest` | 6 | Argument checks; exact order for few items; eviction of the smallest; an evicted item comes back; every item above `phi*N` reported on Zipf streams with its true count in range; top 10 equals the exact top 10 |
+| `HeavyHittersTest` | 7 | Argument checks; an item exactly at `phi*N` is reported; exact order for few items; eviction of the smallest; an evicted item comes back; every item above `phi*N` reported on Zipf streams with its true count in range; top 10 equals the exact top 10 |
 | `InputParsingTest` | 7 | Client field accepts only IPv4/IPv6 characters (up to 45); line reader handles CRLF, a missing final newline and oversized lines without holding them; Zipf sampler follows its distribution; generated addresses are distinct; option parsing rejects bad input |
 | `EndToEndTest` | 5 | Generate then analyze 300,000 lines: unique count within 3 standard errors, top 10 recall 10/10, counts in range; RESULT line; deterministic generation; malformed, oversized and invalid UTF-8 lines skipped and counted; exit codes 0/1/2 and no overwrite |
 
@@ -182,10 +183,10 @@ Full numbers, commands and the DMAIC write-up: [docs/results/m1.md](docs/results
 ```mermaid
 flowchart TB
   MT["Murmur3Test (8)<br/>reference vectors, chi-square"] --> Hash["Murmur3"]
-  HT["HyperLogLogTest (10)<br/>sparse = dense for p 4..18"] --> HLL["HyperLogLog"]
+  HT["HyperLogLogTest (12)<br/>sparse = dense for p 4..18"] --> HLL["HyperLogLog"]
   HA["HyperLogLogAccuracyTest (7)<br/>100 seeded trials per setting"] --> HLL
   CT["CountMinSketchTest (10)<br/>never under-counts, delta bound"] --> CMS["CountMinSketch"]
-  HH["HeavyHittersTest (6)<br/>Zipf streams"] --> Heap["HeavyHitters"]
+  HH["HeavyHittersTest (7)<br/>Zipf streams"] --> Heap["HeavyHitters"]
   Heap --> CMS
   IP["InputParsingTest (7)"] --> CLI["CLI: reader, parser, generator"]
   E2E["EndToEndTest (5)<br/>300,000-line log"] --> CLI
